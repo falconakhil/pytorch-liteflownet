@@ -9,7 +9,7 @@ import sys
 import torch
 
 try:
-    from .correlation import correlation # the custom cost volume layer
+    from correlation.correlation import FunctionCorrelation # the custom cost volume layer
 except:
     sys.path.insert(0, './correlation'); import correlation # you should consider upgrading python
 # end
@@ -26,6 +26,8 @@ args_strModel = 'default' # 'default', or 'kitti', or 'sintel'
 args_strOne = './images/one.png'
 args_strTwo = './images/two.png'
 args_strOut = './out.flo'
+args_imgSize=(128,128)
+
 
 for strOption, strArg in getopt.getopt(sys.argv[1:], '', [
     'model=',
@@ -174,10 +176,10 @@ class Network(torch.nn.Module):
                 # end
 
                 if self.netUpcorr is None:
-                    tenCorrelation = torch.nn.functional.leaky_relu(input=correlation.FunctionCorrelation(tenOne=tenFeaturesOne, tenTwo=tenFeaturesTwo, intStride=1), negative_slope=0.1, inplace=False)
+                    tenCorrelation = torch.nn.functional.leaky_relu(input=FunctionCorrelation(tenOne=tenFeaturesOne, tenTwo=tenFeaturesTwo, intStride=1), negative_slope=0.1, inplace=False)
 
                 elif self.netUpcorr is not None:
-                    tenCorrelation = self.netUpcorr(torch.nn.functional.leaky_relu(input=correlation.FunctionCorrelation(tenOne=tenFeaturesOne, tenTwo=tenFeaturesTwo, intStride=2), negative_slope=0.1, inplace=False))
+                    tenCorrelation = self.netUpcorr(torch.nn.functional.leaky_relu(input=FunctionCorrelation(tenOne=tenFeaturesOne, tenTwo=tenFeaturesTwo, intStride=2), negative_slope=0.1, inplace=False))
 
                 # end
 
@@ -349,8 +351,8 @@ def estimate(tenOne, tenTwo):
     intWidth = tenOne.shape[2]
     intHeight = tenOne.shape[1]
 
-    assert(intWidth == 1024) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
-    assert(intHeight == 436) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
+    # assert(intWidth == 1024) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
+    # assert(intHeight == 436) # remember that there is no guarantee for correctness, comment this line out if you acknowledge this and want to continue
 
     tenPreprocessedOne = tenOne.cuda().view(1, 3, intHeight, intWidth)
     tenPreprocessedTwo = tenTwo.cuda().view(1, 3, intHeight, intWidth)
@@ -372,8 +374,8 @@ def estimate(tenOne, tenTwo):
 ##########################################################
 
 if __name__ == '__main__':
-    tenOne = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(args_strOne))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
-    tenTwo = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(args_strTwo))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
+    tenOne = torch.FloatTensor(numpy.ascontiguousarray(numpy.array((PIL.Image.open(args_strOne)).resize(args_imgSize))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
+    tenTwo = torch.FloatTensor(numpy.ascontiguousarray(numpy.array((PIL.Image.open(args_strTwo)).resize(args_imgSize))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
 
     tenOutput = estimate(tenOne, tenTwo)
 
